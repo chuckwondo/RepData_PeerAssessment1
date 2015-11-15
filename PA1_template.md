@@ -7,14 +7,12 @@ output:
 
 ## Loading and preprocessing the data
 
-```{r echo=FALSE,render=FALSE}
-# Set display options to avoid scientific notation for mean values.
-options(scipen = 1, digits = 2)
-```
+
 
 Here we read the `activity.csv` file (from within `activity.zip`) with `stringsAsFactors = FALSE` so that the date values are not converted to factors and we can easily convert them to time values.
 
-```{r message=FALSE}
+
+```r
 library(dplyr)
 library(lubridate)
 
@@ -30,7 +28,8 @@ tdf <-
 
 Filter out the rows with missing `steps` values, group by `date`, and compute the total number of steps per day (date).
 
-```{r}
+
+```r
 steps_by_date <-
   tdf %>%
   filter(!is.na(steps)) %>%
@@ -40,7 +39,8 @@ steps_by_date <-
 
 *Make a histogram of the total number of steps taken each day*
 
-```{r}
+
+```r
 library(ggplot2)
 
 qplot(steps_by_date$date,
@@ -52,27 +52,32 @@ qplot(steps_by_date$date,
       ylab = "Total Steps")
 ```
 
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
+
 *Calculate and report the mean and median of the total number of steps taken per day*
 
-```{r}
+
+```r
 mean_daily_total_steps <- mean(steps_by_date$total_steps)
 median_daily_total_steps <- median(steps_by_date$total_steps)
 ```
 
-> The **mean** number of steps taken per day is `r mean_daily_total_steps` and the **median** number of steps taken per day is `r median_daily_total_steps`.
+> The **mean** number of steps taken per day is 10766.19 and the **median** number of steps taken per day is 10765.
 
 ## What is the average daily activity pattern?
 
 *Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).*
 
-```{r}
+
+```r
 mean_steps_by_interval <-
   tdf %>%
   group_by(interval) %>%
   summarize(mean_steps = mean(steps, na.rm = TRUE))
 ```
 
-```{r}
+
+```r
 qplot(mean_steps_by_interval$interval,
       mean_steps_by_interval$mean_steps,
       geom = "line",
@@ -81,32 +86,37 @@ qplot(mean_steps_by_interval$interval,
       ylab = "Average Number of Steps")
 ```
 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7-1.png) 
+
 *Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?*
 
-```{r render=FALSE}
+
+```r
 max_mean_steps <- max(mean_steps_by_interval$mean_steps)
 max_mean_interval <-
   mean_steps_by_interval[
     mean_steps_by_interval$mean_steps == max_mean_steps,]$interval
 ```
 
-> Interval `r max_mean_interval` contains the maximum number of steps with `r max_mean_steps` steps on average.
+> Interval 835 contains the maximum number of steps with 206.17 steps on average.
 
 ## Imputing missing values
 
 *Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)*
 
-```{r}
+
+```r
 num_missing_values <- sum(is.na(tdf$steps))
 ```
 
-> There are `r num_missing_values` missing values.
+> There are 2304 missing values.
 
 *Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.*
 
 We'll compute the mean number of steps taken for each interval for each weekday and use these values to replace the missing values. That is, for each missing value of `steps`, we'll replace the missing value with the average number of steps taken for the weekday and interval for that row.
 
-```{r}
+
+```r
 mean_steps_by_weekday_interval <-
   tdf %>%
   filter(!is.na(steps)) %>%
@@ -119,7 +129,8 @@ mean_steps_by_weekday_interval <-
 
 First, we'll create a function that expects a row of data containing a date and an interval and returns the average number of steps for the date's weekday and the interval, by using `mean_steps_by_weekday_interval` as a lookup table.
 
-```{r}
+
+```r
 interpolate_steps <- function(x) {
   weekday <- weekdays(ymd(x["date"]))
   interval <- as.integer(x["interval"])
@@ -131,7 +142,8 @@ interpolate_steps <- function(x) {
 
 Now we'll create the new data set by applying the function above to the rows with missing `steps` values.
 
-```{r}
+
+```r
 filled_tdf <- tdf
 filled_tdf[is.na(tdf$steps), "steps"] <-
   apply(tdf[is.na(tdf$steps),], 1, interpolate_steps)
@@ -139,7 +151,8 @@ filled_tdf[is.na(tdf$steps), "steps"] <-
 
 *Make a histogram of the total number of steps taken each day*
 
-```{r}
+
+```r
 filled_steps_by_date <-
   filled_tdf %>%
   group_by(date) %>%
@@ -154,14 +167,17 @@ qplot(filled_steps_by_date$date,
       ylab = "Total Steps")
 ```
 
+![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-13-1.png) 
+
 *Calculate and report the mean and median total number of steps taken per day.*
 
-```{r}
+
+```r
 mean_filled_steps <- mean(filled_steps_by_date$steps)
 median_filled_steps <- median(filled_steps_by_date$steps)
 ```
 
-> The **mean** number of steps taken per day is `r mean_filled_steps` and the **median** number of steps taken per day is `r median_filled_steps`.
+> The **mean** number of steps taken per day is 10821.21 and the **median** number of steps taken per day is 11015.
 
 *Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?*
 
@@ -173,7 +189,8 @@ median_filled_steps <- median(filled_steps_by_date$steps)
 
 *Create a new factor variable in the dataset with two levels – "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.*
 
-```{r}
+
+```r
 filled_tdf$daytype <-
   as.factor(
     ifelse(
@@ -185,7 +202,8 @@ filled_tdf$daytype <-
 
 *Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.*
 
-```{r}
+
+```r
 library(lattice)
 
 mean_filled_steps_by_interval_daytype <-
@@ -196,3 +214,5 @@ mean_filled_steps_by_interval_daytype <-
 with(mean_filled_steps_by_interval_daytype,
   xyplot(mean_steps ~ interval | daytype, type = "l", layout = c(1, 2)))
 ```
+
+![plot of chunk unnamed-chunk-16](figure/unnamed-chunk-16-1.png) 
